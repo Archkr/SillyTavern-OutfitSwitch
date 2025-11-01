@@ -27,10 +27,10 @@ test("ensure settings shape nests legacy fields into profile", () => {
 
     assert.equal(result.enabled, true);
     assert.equal(result.version, SCHEMA_VERSION);
-    assert.equal(result.profile.character, "Alice");
     assert.equal(result.profile.baseFolder, "Hero");
     assert.deepEqual(result.profile.variants, [{ name: "Casual", folder: "casual" }]);
     assert.deepEqual(result.profile.triggers, [{ trigger: "Battle", folder: "armor" }]);
+    assert.equal("character" in result.profile, false);
 });
 
 test("normalize trigger entry trims values and supports legacy costume", () => {

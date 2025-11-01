@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 function cloneVariants(variants) {
     if (!Array.isArray(variants)) {
@@ -32,12 +32,11 @@ export function normalizeTriggerEntry(entry = {}) {
 }
 
 export function ensureProfileShape(rawProfile = {}) {
-    const character = typeof rawProfile.character === "string" ? rawProfile.character.trim() : "";
     const baseFolder = typeof rawProfile.baseFolder === "string" ? rawProfile.baseFolder.trim() : "";
     const variants = cloneVariants(rawProfile.variants);
     const triggers = cloneTriggers(rawProfile.triggers);
 
-    return { character, baseFolder, variants, triggers };
+    return { baseFolder, variants, triggers };
 }
 
 export const defaultProfile = ensureProfileShape();
@@ -47,7 +46,6 @@ export function ensureSettingsShape(raw = {}) {
     const detectedProfile = raw?.profile && typeof raw.profile === "object"
         ? raw.profile
         : {
-              character: typeof raw?.character === "string" ? raw.character : "",
               baseFolder: raw?.baseFolder,
               variants: raw?.variants,
               triggers: raw?.triggers,
