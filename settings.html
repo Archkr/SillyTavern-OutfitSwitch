@@ -40,7 +40,13 @@
                     <div class="cs-card-body">
                         <label class="cs-field">
                             <span>Base Character Folder</span>
-                            <input id="cs-base-folder" class="text_pole" type="text" placeholder="Character folder" />
+                            <div class="cs-folder-picker">
+                                <input id="cs-base-folder" class="text_pole" type="text" placeholder="Character folder" />
+                                <button id="cs-base-folder-select" class="menu_button interactable cs-button-ghost cs-folder-button" type="button">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    <span>Pick Folder</span>
+                                </button>
+                            </div>
                         </label>
                         <p class="cs-helper-text">Folder paths are relative to your SillyTavern characters directory.</p>
                     </div>
