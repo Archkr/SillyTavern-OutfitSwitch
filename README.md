@@ -1,12 +1,10 @@
 # Outfit Switcher for SillyTavern
 
-Outfit Switcher is the slim single-character wardrobe manager that predated the modern **Outfit Lab** inside Costume Switcher. It watches streaming responses, fires the right costume the moment a keyword or regex hits, and keeps manual overrides one click away. The extension still works great for focused setups or legacy installs, but its ideas now live on inside Costume Switcher’s Outfit Lab with a richer UI and multi-character support.
+Outfit Switcher is the slim single-character wardrobe manager spun out of the modern **Outfit Lab** inside [Costume Switcher for SillyTavern](https://github.com/archkrrr/SillyTavern-CostumeSwitch). It watches streaming responses, fires the right costume the moment a keyword or regex hits, and keeps manual overrides one click away. The extension still works great for focused setups or legacy installs while the Outfit Lab continues forward with richer UI and multi-character support.
 
-**Costume Switcher for SillyTavern**
+**Costume Switcher at a glance:** the flagship extension that handles full-cast wardrobe automation, integrates with Character Expressions, and ships the Outfit Lab that inspired this standalone drawer. Install it if you want the complete experience; reach for Outfit Switcher when you need a lighter, single-character tool or compatibility with older builds.
 
-Costume Switcher is the companion piece to Lenny’s **Character Expressions** extension—it uses the same foundations, but instead of changing facial expressions it swaps the entire costume or avatar folder the moment a new speaker takes the spotlight. Install Costume Switcher (v3.3.0 and newer) and you will find the Outfit Lab panel that evolved from this project, complete with per-character wardrobe builders, trigger tooling, and live testers so you can tune behaviour without leaving the app.
-
-Think of Outfit Switcher as the little brother that proved the concept. Costume Switcher is the flagship, dressing the whole cast, sharing telemetry with Character Expressions, and shipping the Outfit Lab that now covers single-character workflows too. If you are starting fresh, install **Costume Switcher** and enable **Outfit Lab**—you will get everything documented here plus ensemble automation. Keep Outfit Switcher around only if you prefer its pared-back drawer or need a lightweight alternative for older SillyTavern builds.
+Think of Outfit Switcher as the little brother carved out of the Outfit Lab. Costume Switcher remains the flagship, dressing the whole cast, sharing telemetry with Character Expressions, and evolving the Outfit Lab that now covers single-character workflows too. If you are starting fresh, install **Costume Switcher** and enable **Outfit Lab**—you will get everything documented here plus ensemble automation. Keep Outfit Switcher around only if you prefer its pared-back drawer or need a lightweight alternative for older SillyTavern builds.
 
 Under the hood both extensions listen to streaming output, score the mentions they care about, and update costumes instantly. Costume Switcher layers scene awareness, focus locks, and outfit variants on top, while Outfit Switcher keeps those smarts targeted at a single pipeline. The shared lineage means tips from the Outfit Lab directly improve your Outfit Switcher setup and vice versa.
 
@@ -23,48 +21,6 @@ If you want the most current experience, install Costume Switcher and open the *
 5. **Test and iterate safely.** Use the Outfit Lab tester or the broader **Live Pattern Tester** to watch detections, outfit decisions, and skip reasons without sending live `/costume` commands.
 
 These steps mirror the “Outfit Lab” chapter of the Costume Switcher README. Once you are comfortable there, any remaining notes below show how the legacy Outfit Switcher drawer maps to the same concepts.
-
----
-
-## Shared Wardrobe Workflow Tips
-
-Many of the wardrobe strategies from Costume Switcher translate directly to Outfit Switcher. Keep your SillyTavern character folders organised so every variant is easy to reference and debug later.
-
-### Prepare your character folders
-
-Organise each performer inside a readable directory tree. Subfolders can hold portrait variants, background art, or expression packs without leaking into other looks.
-
-```
-SillyTavern/data/default-user/characters/Frostglen Dorm/
-├── Ember Hart/
-├── Quinn Vale/
-└── Mira Snow/
-```
-
-If Ember occasionally switches into a winter outfit, add another directory—`Frostglen Dorm/Ember Hart/Winter Gala/`—and point an Outfit Switcher variant at that path. The base mapping still targets `Frostglen Dorm/Ember Hart`, while the variant appends the extra folder when its trigger (for example, "snowstorm" or a `/winter/i` regex) fires.
-
-### Organising multi-character cards
-
-When a single SillyTavern card contains several characters (bandmates, roommates, or rival teams), mirror that structure in your folders. Create a directory per character and add optional subfolders for alternate personas or shared scenes. Outfit Switcher can focus on the main performer, while Costume Switcher covers the ensemble if you need broader automation.
-
-```
-SillyTavern/data/default-user/characters/Neon Skyline/
-├── Lead Echo/
-├── Bass Nova/
-└── Drummer Pulse/
-```
-
-Use `Neon Skyline/Lead Echo`, `Neon Skyline/Bass Nova`, and `Neon Skyline/Drummer Pulse` as your base folders. When the group performs an acoustic set, prepare alternate directories such as `Neon Skyline/Lead Echo/Unplugged/` and assign Outfit Switcher variants to call them on demand.
-
-**Costume Switcher for SillyTavern**
-
-Costume Switcher is the companion piece to Lenny’s **Character Expressions** extension—it uses the same foundations, but instead of changing facial expressions it swaps the entire costume or avatar folder the moment a new speaker takes the spotlight. Install both and SillyTavern keeps the correct character in focus *and* their emotions in sync, giving you a live stage crew that reacts faster than you can type.
-
-Outfit Switcher is the big sibling in this duo, designed for hyper-focused wardrobe curation. Costume Switcher is its little brother, watching the whole cast and dressing whoever grabs the spotlight while Outfit Switcher keeps a single star perfectly styled. Together they extend Character Expressions into a full backstage crew: Expressions handles nuanced emotions, Costume Switcher handles wardrobe changes, and Outfit Switcher locks in the hero shot whenever you need it.
-
-Under the hood both extensions listen to streaming output from your model, score every mention they care about, and immediately update the displayed costume to match the active speaker. Costume Switcher ships with powerful tooling, scene awareness, and a fully redesigned configuration UI so you can understand *why* a switch happened and tune the behaviour to fit any story, while Outfit Switcher keeps those smarts but channels them into a single-character pipeline.
-
-> **New to the Switcher family?** Start with Costume Switcher to learn the fundamentals, then hop over to the Character Expressions README. Wrap up by configuring Outfit Switcher and you will have a best-friends trio handling expressions, wardrobe changes, and solo focus in perfect sync.
 
 ---
 
