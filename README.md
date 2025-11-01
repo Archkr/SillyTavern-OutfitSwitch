@@ -1,11 +1,12 @@
 # Outfit Switcher for SillyTavern
 
-Outfit Switcher now keeps things deliberately simple: pick one focus character, list the outfits you care about, and trigger them manually. There is no streaming analysis, no roster juggling, and no automatic speaker swaps—only the `/costume` command aimed at your chosen hero.
+Outfit Switcher keeps things deliberately focused on one character while matching the automatic convenience of the Outfit Lab. Configure the folders you care about and the extension will swap outfits in real time as chat messages stream in, just like Costume Switcher’s automation, while still exposing quick manual overrides when you need them.
 
 ## Features
 
 - **Single character focus** – Configure one character name for clarity while the extension concentrates on outfit management.
-- **Manual triggers** – Use the settings panel buttons or the `/outfitswitch &lt;trigger&gt;` slash command to launch a specific outfit instantly.
+- **Hands-free streaming detection** – Outfit Switcher watches every generated token and fires the mapped outfit the moment a trigger phrase appears, mirroring the Outfit Lab’s real-time swaps.
+- **Manual triggers** – Use the settings panel buttons or the `/outfitswitch &lt;trigger&gt;` slash command to launch a specific outfit instantly whenever you want to override automation.
 - **Safe costume calls** – The extension never issues commands that change the active speaker. Every action resolves to a `/costume` update for the configured character.
 - **Default outfit shortcut** – Store a fallback folder and fire it from the UI with one click.
 
