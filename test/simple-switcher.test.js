@@ -6,9 +6,11 @@ import {
     defaultSettings,
     ensureSettingsShape,
     findCostumeForTrigger,
+    findCostumeForText,
     normalizeCostumeFolder,
     normalizeTriggerEntry,
     normalizeVariantEntry,
+    parseTriggerPattern,
 } from "../src/simple-switcher.js";
 
 test("default settings shape", () => {
@@ -72,6 +74,22 @@ test("compose costume path merges base and variant", () => {
     assert.equal(composeCostumePath("", "armor"), "armor");
 });
 
+test("parse trigger pattern handles literals and regex", () => {
+    const literal = parseTriggerPattern("Battle");
+    assert.deepEqual(literal, { type: "literal", raw: "Battle", value: "battle" });
+
+    const regex = parseTriggerPattern("/fight\\s+mode/i");
+    assert.equal(regex?.type, "regex");
+    assert.equal(regex?.raw, "/fight\\s+mode/i");
+    assert.equal(regex?.regex instanceof RegExp, true);
+    assert.equal(regex?.regex.flags.includes("i"), true);
+});
+
+test("parse trigger pattern returns null for invalid regex", () => {
+    const result = parseTriggerPattern("/unterminated");
+    assert.equal(result, null);
+});
+
 test("find costume for trigger is case-insensitive and respects base folder", () => {
     const settings = ensureSettingsShape({
         baseFolder: "hero",
@@ -113,3 +131,46 @@ test("find costume for trigger works when provided a profile object", () => {
 
     assert.equal(findCostumeForTrigger(settings.profile, "Battle"), "hero/armor");
 });
+
+test("find costume for text matches literals case-insensitively", () => {
+    const settings = ensureSettingsShape({
+        baseFolder: "hero",
+        triggers: [
+            { trigger: "Battle", folder: "armor" },
+            { trigger: "Relax", triggers: ["wind down"], folder: "casual" },
+        ],
+    });
+
+    const battleMatch = findCostumeForText(settings, "Time to battle the villain!");
+    assert.deepEqual(battleMatch, { costume: "hero/armor", trigger: "Battle", type: "literal" });
+
+    const relaxMatch = findCostumeForText(settings.profile, "Let's WIND DOWN after the fight.");
+    assert.deepEqual(relaxMatch, { costume: "hero/casual", trigger: "wind down", type: "literal" });
+});
+
+test("find costume for text matches regex patterns", () => {
+    const settings = ensureSettingsShape({
+        baseFolder: "hero",
+        triggers: [
+            { trigger: "Battle", triggers: ["/fight\\s+mode/i"], folder: "armor" },
+        ],
+    });
+
+    const match = findCostumeForText(settings, "Switching to FIGHT    MODE now!");
+    assert.equal(match?.costume, "hero/armor");
+    assert.equal(match?.type, "regex");
+});
+
+test("find costume for text ignores entries without folders", () => {
+    const settings = ensureSettingsShape({
+        baseFolder: "",
+        triggers: [
+            { trigger: "Battle", folder: "" },
+            { trigger: "Relax", folder: "casual" },
+        ],
+    });
+
+    assert.equal(findCostumeForText(settings, "battle mode"), null);
+    assert.deepEqual(findCostumeForText(settings, "Time to relax"), { costume: "casual", trigger: "Relax", type: "literal" });
+});
+
