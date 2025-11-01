@@ -1,9 +1,16 @@
 export const defaultSettings = {
     enabled: false,
-    characterName: "",
-    defaultCostume: "",
+    baseFolder: "",
+    variants: [],
     triggers: [],
 };
+
+function cloneVariants(variants) {
+    if (!Array.isArray(variants)) {
+        return [];
+    }
+    return variants.map((entry) => normalizeVariantEntry(entry));
+}
 
 function cloneTriggers(triggers) {
     if (!Array.isArray(triggers)) {
@@ -12,19 +19,30 @@ function cloneTriggers(triggers) {
     return triggers.map((entry) => normalizeTriggerEntry(entry));
 }
 
+export function normalizeVariantEntry(entry = {}) {
+    const name = typeof entry.name === "string" ? entry.name.trim() : "";
+    const folder = typeof entry.folder === "string" ? entry.folder.trim() : "";
+    return { name, folder };
+}
+
 export function normalizeTriggerEntry(entry = {}) {
     const trigger = typeof entry.trigger === "string" ? entry.trigger.trim() : "";
-    const costume = typeof entry.costume === "string" ? entry.costume.trim() : "";
-    return { trigger, costume };
+    let folder = "";
+    if (typeof entry.folder === "string") {
+        folder = entry.folder.trim();
+    } else if (typeof entry.costume === "string") {
+        folder = entry.costume.trim();
+    }
+    return { trigger, folder };
 }
 
 export function ensureSettingsShape(raw = {}) {
     const enabled = Boolean(raw.enabled);
-    const characterName = typeof raw.characterName === "string" ? raw.characterName.trim() : "";
-    const defaultCostume = typeof raw.defaultCostume === "string" ? raw.defaultCostume.trim() : "";
+    const baseFolder = typeof raw.baseFolder === "string" ? raw.baseFolder.trim() : "";
+    const variants = cloneVariants(raw.variants);
     const triggers = cloneTriggers(raw.triggers);
 
-    return { enabled, characterName, defaultCostume, triggers };
+    return { enabled, baseFolder, variants, triggers };
 }
 
 export function normalizeCostumeFolder(rawFolder) {
@@ -34,6 +52,8 @@ export function normalizeCostumeFolder(rawFolder) {
     let folder = String(rawFolder).trim();
     folder = folder.replace(/^\\+/, "");
     folder = folder.replace(/^\/+/, "");
+    folder = folder.replace(/\\+/g, "/");
+    folder = folder.replace(/\/+$/, "");
     return folder;
 }
 
@@ -50,9 +70,18 @@ export function findCostumeForTrigger(settings, key) {
     for (const entry of settings.triggers) {
         const normalized = String(entry?.trigger ?? "").trim().toLowerCase();
         if (normalized && normalized === lookup) {
-            return String(entry.costume ?? "").trim();
+            return composeCostumePath(settings.baseFolder, entry.folder);
         }
     }
 
     return "";
+}
+
+export function composeCostumePath(baseFolder = "", variantFolder = "") {
+    const base = normalizeCostumeFolder(baseFolder);
+    const variant = normalizeCostumeFolder(variantFolder);
+    if (base && variant) {
+        return `${base}/${variant}`.replace(/\/{2,}/g, "/");
+    }
+    return variant || base;
 }
