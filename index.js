@@ -5,8 +5,10 @@ import {
     defaultSettings,
     ensureSettingsShape,
     findCostumeForTrigger,
+    composeCostumePath,
     normalizeCostumeFolder,
     normalizeTriggerEntry,
+    normalizeVariantEntry,
 } from "./src/simple-switcher.js";
 
 const extensionName = "SillyTavern-CostumeSwitch";
@@ -102,17 +104,7 @@ function handleEnableToggle(event) {
     showStatus(settings.enabled ? "Outfit switching enabled." : "Outfit switching disabled.", "info");
 }
 
-function handleCharacterInput(event) {
-    settings.characterName = event.target.value.trim();
-    persistSettings("characterName");
-}
-
-function handleDefaultCostumeInput(event) {
-    settings.defaultCostume = event.target.value.trim();
-    persistSettings("defaultCostume");
-}
-
-function addTriggerRow(trigger = { trigger: "", costume: "" }) {
+function addTriggerRow(trigger = { trigger: "", folder: "" }) {
     settings.triggers.push(normalizeTriggerEntry(trigger));
     persistSettings("triggers");
     renderTriggers();
@@ -126,20 +118,20 @@ function removeTriggerRow(index) {
 
 function bindTriggerInputs(row, index) {
     const triggerInput = row.querySelector(".cs-trigger-input");
-    const costumeInput = row.querySelector(".cs-costume-input");
+    const folderInput = row.querySelector(".cs-folder-input");
     const runButton = row.querySelector(".cs-trigger-run");
     const deleteButton = row.querySelector(".cs-trigger-delete");
 
     triggerInput.value = settings.triggers[index].trigger;
-    costumeInput.value = settings.triggers[index].costume;
+    folderInput.value = settings.triggers[index].folder;
 
     triggerInput.addEventListener("input", (event) => {
         settings.triggers[index].trigger = event.target.value;
         persistSettings("triggers");
     });
 
-    costumeInput.addEventListener("input", (event) => {
-        settings.triggers[index].costume = event.target.value;
+    folderInput.addEventListener("input", (event) => {
+        settings.triggers[index].folder = event.target.value;
         persistSettings("triggers");
     });
 
@@ -148,7 +140,8 @@ function bindTriggerInputs(row, index) {
             showStatus("Enable Outfit Switcher to use triggers.", "error");
             return;
         }
-        const result = await issueCostume(settings.triggers[index].costume, { source: "ui" });
+        const targetFolder = composeCostumePath(settings.baseFolder, settings.triggers[index].folder);
+        const result = await issueCostume(targetFolder, { source: "ui" });
         if (result.toLowerCase().startsWith("please provide")) {
             showStatus("Enter an outfit folder before running the trigger.", "error");
         }
@@ -170,7 +163,7 @@ function renderTriggers() {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td><input type="text" class="text_pole cs-trigger-input" placeholder="Trigger" /></td>
-            <td><input type="text" class="text_pole cs-costume-input" placeholder="Outfit folder" /></td>
+            <td><input type="text" class="text_pole cs-folder-input" placeholder="Variant folder" /></td>
             <td class="cs-trigger-actions">
                 <button type="button" class="menu_button interactable cs-trigger-run">Run</button>
                 <button type="button" class="menu_button interactable cs-trigger-delete">Remove</button>
@@ -185,6 +178,89 @@ function renderTriggers() {
         emptyRow.innerHTML = `<td colspan="3" class="cs-empty">No triggers yet. Add one below.</td>`;
         tbody.appendChild(emptyRow);
     }
+}
+
+function addVariant(variant = { name: "", folder: "" }) {
+    settings.variants.push(normalizeVariantEntry(variant));
+    persistSettings("variants");
+    renderVariants();
+    renderTriggers();
+}
+
+function removeVariant(index) {
+    settings.variants.splice(index, 1);
+    persistSettings("variants");
+    renderVariants();
+    renderTriggers();
+}
+
+function bindVariantInputs(row, index) {
+    const nameInput = row.querySelector(".cs-variant-name");
+    const folderInput = row.querySelector(".cs-variant-folder");
+    const runButton = row.querySelector(".cs-variant-run");
+    const deleteButton = row.querySelector(".cs-variant-delete");
+
+    nameInput.value = settings.variants[index].name;
+    folderInput.value = settings.variants[index].folder;
+
+    nameInput.addEventListener("input", (event) => {
+        settings.variants[index].name = event.target.value;
+        persistSettings("variants");
+    });
+
+    folderInput.addEventListener("input", (event) => {
+        settings.variants[index].folder = event.target.value;
+        persistSettings("variants");
+    });
+
+    runButton.addEventListener("click", async () => {
+        if (!settings.enabled) {
+            showStatus("Enable Outfit Switcher to use variants.", "error");
+            return;
+        }
+        const targetFolder = composeCostumePath(settings.baseFolder, settings.variants[index].folder);
+        const result = await issueCostume(targetFolder, { source: "ui" });
+        if (result.toLowerCase().startsWith("please provide")) {
+            showStatus("Set the base folder or variant folder before running.", "error");
+        }
+    });
+
+    deleteButton.addEventListener("click", () => {
+        removeVariant(index);
+    });
+}
+
+function renderVariants() {
+    const tbody = getElement("#cs-variant-table-body");
+    if (!tbody) {
+        return;
+    }
+
+    tbody.innerHTML = "";
+    settings.variants.forEach((variant, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td><input type="text" class="text_pole cs-variant-name" placeholder="Variant name" /></td>
+            <td><input type="text" class="text_pole cs-variant-folder" placeholder="Subfolder" /></td>
+            <td class="cs-variant-actions">
+                <button type="button" class="menu_button interactable cs-variant-run">Run</button>
+                <button type="button" class="menu_button interactable cs-variant-delete">Remove</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+        bindVariantInputs(row, index);
+    });
+
+    if (!settings.variants.length) {
+        const emptyRow = document.createElement("tr");
+        emptyRow.innerHTML = `<td colspan="3" class="cs-empty">No variants configured. Add one below.</td>`;
+        tbody.appendChild(emptyRow);
+    }
+}
+
+function handleBaseFolderInput(event) {
+    settings.baseFolder = event.target.value.trim();
+    persistSettings("baseFolder");
 }
 
 async function runTriggerByName(triggerName, source = "slash") {
@@ -212,44 +288,44 @@ async function runTriggerByName(triggerName, source = "slash") {
 
 function bindUI() {
     const enableCheckbox = getElement("#cs-enable");
-    const characterInput = getElement("#cs-character");
-    const defaultCostumeInput = getElement("#cs-default-costume");
+    const baseFolderInput = getElement("#cs-base-folder");
+    const addVariantButton = getElement("#cs-add-variant");
     const addTriggerButton = getElement("#cs-add-trigger");
-    const runDefaultButton = getElement("#cs-run-default");
+    const runBaseButton = getElement("#cs-run-base");
 
     if (enableCheckbox) {
         enableCheckbox.checked = settings.enabled;
         enableCheckbox.addEventListener("change", handleEnableToggle);
     }
 
-    if (characterInput) {
-        characterInput.value = settings.characterName;
-        characterInput.addEventListener("input", handleCharacterInput);
+    if (baseFolderInput) {
+        baseFolderInput.value = settings.baseFolder;
+        baseFolderInput.addEventListener("input", handleBaseFolderInput);
     }
 
-    if (defaultCostumeInput) {
-        defaultCostumeInput.value = settings.defaultCostume;
-        defaultCostumeInput.addEventListener("input", handleDefaultCostumeInput);
+    if (addVariantButton) {
+        addVariantButton.addEventListener("click", () => addVariant());
     }
 
     if (addTriggerButton) {
         addTriggerButton.addEventListener("click", () => addTriggerRow());
     }
 
-    if (runDefaultButton) {
-        runDefaultButton.addEventListener("click", async () => {
+    if (runBaseButton) {
+        runBaseButton.addEventListener("click", async () => {
             if (!settings.enabled) {
-                showStatus("Enable Outfit Switcher to run the default outfit.", "error");
+                showStatus("Enable Outfit Switcher to run the base folder.", "error");
                 return;
             }
-            if (!settings.defaultCostume) {
-                showStatus("Set a default outfit before running it.", "error");
+            if (!settings.baseFolder) {
+                showStatus("Set a base folder before running it.", "error");
                 return;
             }
-            await issueCostume(settings.defaultCostume, { source: "ui" });
+            await issueCostume(settings.baseFolder, { source: "ui" });
         });
     }
 
+    renderVariants();
     renderTriggers();
 }
 

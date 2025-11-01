@@ -50,19 +50,23 @@
     flex-wrap: wrap;
 }
 
-.cs-trigger-table {
+.cs-trigger-table,
+.cs-variant-table {
     width: 100%;
     border-collapse: collapse;
 }
 
 .cs-trigger-table th,
-.cs-trigger-table td {
+.cs-trigger-table td,
+.cs-variant-table th,
+.cs-variant-table td {
     padding: 8px;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.cs-trigger-table thead {
+.cs-trigger-table thead,
+.cs-variant-table thead {
     background: rgba(255, 255, 255, 0.04);
 }
 
@@ -72,7 +76,17 @@
     align-items: center;
 }
 
+.cs-variant-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .cs-trigger-actions .menu_button {
+    padding: 6px 12px;
+}
+
+.cs-variant-actions .menu_button {
     padding: 6px 12px;
 }
 
@@ -114,6 +128,7 @@
     display: block;
 }
 
-.cs-trigger-table input.text_pole {
+.cs-trigger-table input.text_pole,
+.cs-variant-table input.text_pole {
     width: 100%;
 }
