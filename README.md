@@ -14,23 +14,21 @@ Under the hood both extensions listen to streaming output, score the mentions th
 
 ## Contents
 
-1. [Prefer Costume Switcher’s Outfit Lab](#prefer-costume-switchers-outfit-lab)
-2. [Shared Wardrobe Workflow Tips](#shared-wardrobe-workflow-tips)
-3. [Highlights at a Glance](#highlights-at-a-glance)
-4. [Requirements](#requirements)
-5. [Installation](#installation)
-6. [Architecture Overview](#architecture-overview)
-7. [Trigger & Variant Model](#trigger--variant-model)
-8. [Getting Started in Five Minutes](#getting-started-in-five-minutes)
-9. [Tour of the Settings UI](#tour-of-the-settings-ui)
+1. [Highlights at a Glance](#highlights-at-a-glance)
+2. [Requirements](#requirements)
+3. [Installation](#installation)
+4. [Architecture Overview](#architecture-overview)
+5. [Trigger & Variant Model](#trigger--variant-model)
+6. [Getting Started in Five Minutes](#getting-started-in-five-minutes)
+7. [Tour of the Settings UI](#tour-of-the-settings-ui)
     1. [Character Card](#character-card)
     2. [Variant Gallery](#variant-gallery)
     3. [Trigger Table](#trigger-table)
     4. [Status & Tips](#status--tips)
-10. [Understanding Automatic Switches](#understanding-automatic-switches)
-11. [Slash Command Reference](#slash-command-reference)
-12. [Troubleshooting Checklist](#troubleshooting-checklist)
-13. [Support & Contributions](#support--contributions)
+8. [Understanding Automatic Switches](#understanding-automatic-switches)
+9. [Slash Command Reference](#slash-command-reference)
+10. [Troubleshooting Checklist](#troubleshooting-checklist)
+11. [Support & Contributions](#support--contributions)
 
 ---
 
