@@ -17,6 +17,7 @@ const logPrefix = "[CostumeSwitch]";
 
 let settings = ensureSettingsShape(extension_settings[extensionName] || defaultSettings);
 let statusTimer = null;
+let settingsPanelPromise = null;
 
 extension_settings[extensionName] = settings;
 
@@ -46,6 +47,47 @@ function persistSettings(reason = "update") {
 
 function getElement(selector) {
     return document.querySelector(selector);
+}
+
+function getSettingsContainer() {
+    return document.querySelector("#extensions_settings");
+}
+
+async function ensureSettingsPanel() {
+    if (document.getElementById("costume-switcher-settings")) {
+        return;
+    }
+
+    if (!settingsPanelPromise) {
+        settingsPanelPromise = (async () => {
+            const container = getSettingsContainer();
+            if (!container) {
+                throw new Error("Unable to locate the SillyTavern extensions container.");
+            }
+
+            const settingsUrl = new URL("./settings.html", import.meta.url);
+            const response = await fetch(settingsUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to load settings markup (${response.status})`);
+            }
+
+            const markup = await response.text();
+            const template = document.createElement("template");
+            template.innerHTML = markup.trim();
+            const panel = template.content.firstElementChild;
+
+            if (!panel) {
+                throw new Error("Settings markup did not contain a root element.");
+            }
+
+            container.appendChild(panel);
+        })().catch((error) => {
+            console.error(`${logPrefix} Failed to inject settings panel`, error);
+            settingsPanelPromise = null;
+        });
+    }
+
+    return settingsPanelPromise;
 }
 
 function showStatus(message, type = "info", duration = 2500) {
@@ -371,10 +413,11 @@ function initSlashCommand() {
     );
 }
 
-function init() {
+async function init() {
     settings = ensureSettingsShape(extension_settings[extensionName] || defaultSettings);
     extension_settings[extensionName] = settings;
 
+    await ensureSettingsPanel();
     bindUI();
     showStatus("Ready", "info");
 }
@@ -382,7 +425,9 @@ function init() {
 initSlashCommand();
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", () => {
+        init();
+    });
 } else {
     init();
 }
