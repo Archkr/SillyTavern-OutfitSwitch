@@ -1,6 +1,6 @@
 # Outfit Switcher for SillyTavern
 
-Outfit Switcher is the slim single-character wardrobe manager spun out of the modern **Outfit Lab** inside [Costume Switcher for SillyTavern](https://github.com/archkrrr/SillyTavern-CostumeSwitch). It watches streaming responses, fires the right costume the moment a keyword or regex hits, and keeps manual overrides one click away. The extension still works great for focused setups or legacy installs while the Outfit Lab continues forward with richer UI and multi-character support.
+Outfit Switcher is the slim single-character wardrobe manager spun out of the **Outfit Lab** inside [Costume Switcher for SillyTavern](https://github.com/archkrrr/SillyTavern-CostumeSwitch). It watches streaming responses, fires the right costume the moment a keyword or regex hits, and keeps manual overrides one click away. The extension still works great for focused setups or legacy installs while the Outfit Lab continues forward with richer UI and multi-character support.
 
 **Costume Switcher at a glance:** the flagship extension that handles full-cast wardrobe automation, integrates with Character Expressions, and ships the Outfit Lab that inspired this standalone drawer. Install it if you want the complete experience; reach for Outfit Switcher when you need a lighter, single-character tool or compatibility with older builds.
 
