@@ -10,50 +10,6 @@ Under the hood both extensions listen to streaming output, score the mentions th
 
 > **New to the Switcher family?** Start with **Costume Switcher** → enable **Outfit Lab** for single-character wardrobe control → consult the Character Expressions README for emotion swaps. Return here only if you need the archival Outfit Switcher drawer or a minimal install.
 
-## Prefer Costume Switcher’s Outfit Lab
-
-If you want the most current experience, install Costume Switcher and open the **Outfit Lab** card in its settings drawer. Outfit Switcher’s feature set lives inside that panel with extra safety rails, live testers, and multi-character awareness. Use this README as a quick-start companion while following the Outfit Lab flow inside Costume Switcher:
-
-1. **Prepare your character folders.** Mirror your SillyTavern directory so each performer—and their optional variants—has a clean subfolder. This keeps the Outfit Lab preview and Costume Switcher logs easy to follow.
-2. **Enable the lab in settings.** Open **Settings → Extensions → Costume Switcher**, scroll to **Outfit Lab**, and flip the toggle. The lab stays hidden until you opt in.
-3. **Add characters and defaults.** Create a card for each character, set their default costume folder, and optionally assign aliases so detections line up with your prose.
-4. **Build outfit variations.** Add variants with keywords or regex triggers, restrict them by match type or scene roster, and preview the resolved folder path before saving.
-5. **Test and iterate safely.** Use the Outfit Lab tester or the broader **Live Pattern Tester** to watch detections, outfit decisions, and skip reasons without sending live `/costume` commands.
-
-These steps mirror the “Outfit Lab” chapter of the Costume Switcher README. Once you are comfortable there, any remaining notes below show how the legacy Outfit Switcher drawer maps to the same concepts.
-
----
-
-## Shared Wardrobe Workflow Tips
-
-Many of the wardrobe strategies from Costume Switcher translate directly to Outfit Switcher. Keep your SillyTavern character folders organised so every variant is easy to reference and debug later.
-
-### Prepare your character folders
-
-Organise each performer inside a readable directory tree. Subfolders can hold portrait variants, background art, or expression packs without leaking into other looks.
-
-```
-SillyTavern/data/default-user/characters/Frostglen Dorm/
-├── Ember Hart/
-├── Quinn Vale/
-└── Mira Snow/
-```
-
-If Ember occasionally switches into a winter outfit, add another directory—`Frostglen Dorm/Ember Hart/Winter Gala/`—and point an Outfit Switcher variant at that path. The base mapping still targets `Frostglen Dorm/Ember Hart`, while the variant appends the extra folder when its trigger (for example, "snowstorm" or a `/winter/i` regex) fires.
-
-### Organising multi-character cards
-
-When a single SillyTavern card contains several characters (bandmates, roommates, or rival teams), mirror that structure in your folders. Create a directory per character and add optional subfolders for alternate personas or shared scenes. Outfit Switcher can focus on the main performer, while Costume Switcher covers the ensemble if you need broader automation.
-
-```
-SillyTavern/data/default-user/characters/Neon Skyline/
-├── Lead Echo/
-├── Bass Nova/
-└── Drummer Pulse/
-```
-
-Use `Neon Skyline/Lead Echo`, `Neon Skyline/Bass Nova`, and `Neon Skyline/Drummer Pulse` as your base folders. When the group performs an acoustic set, prepare alternate directories such as `Neon Skyline/Lead Echo/Unplugged/` and assign Outfit Switcher variants to call them on demand.
-
 ---
 
 ## Contents
