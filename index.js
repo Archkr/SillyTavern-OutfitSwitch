@@ -10,6 +10,7 @@ import {
     normalizeTriggerEntry,
     normalizeVariantEntry,
 } from "./src/simple-switcher.js";
+import { getOutfitSlashCommandConfig } from "./src/verbs.js";
 
 const extensionName = "SillyTavern-CostumeSwitch";
 const logPrefix = "[CostumeSwitch]";
@@ -72,7 +73,7 @@ function showStatus(message, type = "info", duration = 2500) {
 async function issueCostume(folder, { source = "ui" } = {}) {
     const normalized = normalizeCostumeFolder(folder);
     if (!normalized) {
-        const message = "Please provide an outfit folder.";
+        const message = "Provide an outfit folder for the focus character.";
         if (source === "slash") {
             return message;
         }
@@ -82,7 +83,7 @@ async function issueCostume(folder, { source = "ui" } = {}) {
 
     try {
         await executeSlashCommandsOnChatInput(`/costume \\${normalized}`);
-        const successMessage = `Switched to <b>${escapeHtml(normalized)}</b>.`;
+        const successMessage = `Updated the focus character's outfit to <b>${escapeHtml(normalized)}</b>.`;
         if (source === "slash") {
             return successMessage;
         }
@@ -90,7 +91,7 @@ async function issueCostume(folder, { source = "ui" } = {}) {
         return successMessage;
     } catch (err) {
         console.error(`${logPrefix} Failed to execute /costume for "${normalized}"`, err);
-        const failureMessage = `Failed to switch to <b>${escapeHtml(normalized)}</b>.`;
+        const failureMessage = `Failed to update the focus character's outfit to <b>${escapeHtml(normalized)}</b>.`;
         if (source === "slash") {
             return failureMessage;
         }
@@ -289,7 +290,7 @@ function handleBaseFolderInput(event) {
 
 async function runTriggerByName(triggerName, source = "slash") {
     if (!settings.enabled) {
-        const disabledMessage = "Outfit Switcher is disabled.";
+        const disabledMessage = "Outfit Switcher is disabled for the focus character.";
         if (source === "slash") {
             return disabledMessage;
         }
@@ -299,7 +300,7 @@ async function runTriggerByName(triggerName, source = "slash") {
 
     const costume = findCostumeForTrigger(settings, triggerName);
     if (!costume) {
-        const unknownMessage = `No outfit mapped for "${escapeHtml(triggerName || "")}".`;
+        const unknownMessage = `No outfit trigger named "${escapeHtml(triggerName || "")}".`;
         if (source === "slash") {
             return unknownMessage;
         }
@@ -356,14 +357,16 @@ function bindUI() {
 }
 
 function initSlashCommand() {
+    const slashConfig = getOutfitSlashCommandConfig();
+
     registerSlashCommand(
-        "outfitswitch",
+        slashConfig.name,
         async (args) => {
             const triggerText = Array.isArray(args) ? args.join(" ") : String(args ?? "");
             return runTriggerByName(triggerText, "slash");
         },
-        ["trigger"],
-        "Switch the configured character's outfit using a named trigger.",
+        slashConfig.args,
+        slashConfig.description,
         false,
     );
 }

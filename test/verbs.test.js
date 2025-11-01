@@ -1,0 +1,28 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+    OUTFIT_ACTION_VERBS,
+    OUTFIT_SLASH_ARGUMENTS,
+    OUTFIT_SLASH_COMMAND,
+    OUTFIT_SLASH_DESCRIPTION,
+    getOutfitSlashCommandConfig,
+    isOutfitActionVerb,
+} from "../src/verbs.js";
+
+test("outfit action verbs only include outfit switching terms", () => {
+    assert.deepEqual(OUTFIT_ACTION_VERBS, ["switch", "change", "swap"]);
+    assert.equal(isOutfitActionVerb("switch"), true);
+    assert.equal(isOutfitActionVerb("speaker"), false);
+    assert.equal(isOutfitActionVerb(""), false);
+});
+
+test("slash command config targets outfit switching", () => {
+    const config = getOutfitSlashCommandConfig();
+    assert.equal(config.name, OUTFIT_SLASH_COMMAND);
+    assert.deepEqual(config.args, OUTFIT_SLASH_ARGUMENTS);
+    assert.equal(config.description, OUTFIT_SLASH_DESCRIPTION);
+    assert.equal(config.name, "outfitswitch");
+    assert.deepEqual(config.args, ["trigger"]);
+    assert.ok(config.description.includes("focus character"));
+    assert.equal(config.description.toLowerCase().includes("speaker"), false);
+});
