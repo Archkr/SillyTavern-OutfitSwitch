@@ -1,10 +1,11 @@
 import { extension_settings } from "../../../extensions.js";
-import { saveSettingsDebounced } from "../../../../script.js";
+import { saveSettingsDebounced, event_types, eventSource } from "../../../../script.js";
 import { executeSlashCommandsOnChatInput, registerSlashCommand } from "../../../slash-commands.js";
 import {
     defaultSettings,
     ensureSettingsShape,
     findCostumeForTrigger,
+    findCostumeForText,
     composeCostumePath,
     normalizeCostumeFolder,
     normalizeTriggerEntry,
@@ -18,6 +19,12 @@ const logPrefix = "[OutfitSwitch]";
 let settings = ensureSettingsShape(extension_settings[extensionName] || defaultSettings);
 let statusTimer = null;
 let settingsPanelPromise = null;
+const automationState = {
+    handlers: [],
+    registered: false,
+    lastMessageSignature: null,
+    lastAppliedCostume: null,
+};
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 const AUTO_SAVE_NOTICE_COOLDOWN_MS = 1800;
@@ -147,6 +154,205 @@ function flushAutoSave({ force = false, overrideMessage, showStatusMessage = tru
     }
 
     return true;
+}
+
+function resetAutomationTracking() {
+    automationState.lastMessageSignature = null;
+    automationState.lastAppliedCostume = null;
+}
+
+function buildMessageSignature(details) {
+    if (!details) {
+        return null;
+    }
+
+    if (details.key) {
+        return details.key;
+    }
+
+    if (Number.isFinite(details.id)) {
+        return `id:${details.id}`;
+    }
+
+    if (typeof details.text === "string" && details.text.trim()) {
+        return details.text.trim();
+    }
+
+    return null;
+}
+
+function resolveMessageCandidate(value, visited) {
+    if (value == null) {
+        return null;
+    }
+
+    if (typeof value === "string") {
+        return value.trim() ? { text: value, isUser: false, key: null, id: null } : null;
+    }
+
+    if (typeof value !== "object") {
+        return null;
+    }
+
+    if (visited.has(value)) {
+        return null;
+    }
+    visited.add(value);
+
+    if (Array.isArray(value)) {
+        for (const entry of value) {
+            const result = resolveMessageCandidate(entry, visited);
+            if (result && result.text) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    const textCandidate = typeof value.mes === "string"
+        ? value.mes
+        : (typeof value.text === "string"
+              ? value.text
+              : (typeof value.message === "string" ? value.message : null));
+
+    const isUser = Boolean(value.is_user ?? value.isUser ?? (typeof value.role === "string" && value.role.toLowerCase() === "user"));
+    const key = typeof value.key === "string"
+        ? value.key
+        : (typeof value.bufKey === "string"
+              ? value.bufKey
+              : (typeof value.messageKey === "string" ? value.messageKey : null));
+    const idCandidate = [value.id, value.mesId, value.messageId].find((candidate) => Number.isFinite(candidate));
+    const id = idCandidate != null ? Number(idCandidate) : null;
+
+    if (typeof textCandidate === "string" && textCandidate.trim()) {
+        return { text: textCandidate, isUser, key, id };
+    }
+
+    const nestedSources = [
+        value.message,
+        value.data,
+        value.payload,
+        value.detail,
+        value.result,
+        value.output,
+        value.content,
+        value.response,
+        value.entry,
+    ];
+
+    for (const nested of nestedSources) {
+        if (nested && typeof nested !== "function") {
+            const result = resolveMessageCandidate(nested, visited);
+            if (result && result.text) {
+                return {
+                    text: result.text,
+                    isUser: result.isUser ?? isUser,
+                    key: result.key || key,
+                    id: result.id ?? id,
+                };
+            }
+        }
+    }
+
+    for (const nested of Object.values(value)) {
+        if (nested && typeof nested !== "function") {
+            const result = resolveMessageCandidate(nested, visited);
+            if (result && result.text) {
+                return result;
+            }
+        }
+    }
+
+    return null;
+}
+
+function extractMessageDetails(args) {
+    const visited = new Set();
+    for (const arg of args) {
+        const result = resolveMessageCandidate(arg, visited);
+        if (result && typeof result.text === "string" && result.text.trim()) {
+            return result;
+        }
+    }
+    return { text: "", isUser: false, key: null, id: null };
+}
+
+function automationMessageHandler(...args) {
+    if (!settings.enabled) {
+        return;
+    }
+
+    const details = extractMessageDetails(args);
+    if (!details || !details.text || details.isUser) {
+        return;
+    }
+
+    const profile = getActiveProfile();
+    const match = findCostumeForText(profile, details.text);
+    if (!match || !match.costume) {
+        return;
+    }
+
+    const signature = buildMessageSignature(details);
+    if (
+        signature
+        && automationState.lastMessageSignature === signature
+        && automationState.lastAppliedCostume === match.costume
+    ) {
+        return;
+    }
+
+    automationState.lastMessageSignature = signature;
+    automationState.lastAppliedCostume = match.costume;
+
+    console.log(`${logPrefix} Auto-switching to "${match.costume}" (triggered by ${match.trigger}).`);
+    issueCostume(match.costume, { source: "automation" });
+}
+
+function registerAutomationHandlers() {
+    if (automationState.registered || !eventSource?.on) {
+        return;
+    }
+
+    automationState.handlers = [];
+
+    const events = [event_types?.CHARACTER_MESSAGE_RENDERED, event_types?.MESSAGE_RENDERED]
+        .filter((eventName) => typeof eventName === "string");
+    const resetEvents = [event_types?.CHAT_CHANGED]
+        .filter((eventName) => typeof eventName === "string");
+
+    events.forEach((eventName) => {
+        eventSource.on(eventName, automationMessageHandler);
+        automationState.handlers.push({ eventName, handler: automationMessageHandler });
+    });
+
+    resetEvents.forEach((eventName) => {
+        eventSource.on(eventName, resetAutomationTracking);
+        automationState.handlers.push({ eventName, handler: resetAutomationTracking });
+    });
+
+    automationState.registered = automationState.handlers.length > 0;
+}
+
+function teardownAutomationHandlers() {
+    if (!automationState.handlers.length || !eventSource?.off) {
+        automationState.handlers = [];
+        automationState.registered = false;
+        resetAutomationTracking();
+        return;
+    }
+
+    automationState.handlers.forEach(({ eventName, handler }) => {
+        try {
+            eventSource.off(eventName, handler);
+        } catch (error) {
+            console.warn(`${logPrefix} Failed to detach automation handler for ${eventName}`, error);
+        }
+    });
+
+    automationState.handlers = [];
+    automationState.registered = false;
+    resetAutomationTracking();
 }
 
 function getElement(selector) {
@@ -427,6 +633,9 @@ function attachFolderPicker(button, targetInput, { mode = "absolute" } = {}) {
 function handleEnableToggle(event) {
     settings.enabled = Boolean(event.target.checked);
     scheduleAutoSave({ key: "enabled", element: event.target, announce: false });
+    if (!settings.enabled) {
+        resetAutomationTracking();
+    }
     showStatus(settings.enabled ? "Outfit switching enabled." : "Outfit switching disabled.", "info");
 }
 
@@ -757,6 +966,7 @@ async function init() {
     }
     await populateBuildMeta();
     bindUI();
+    registerAutomationHandlers();
     showStatus("Ready", "info");
 }
 
@@ -765,6 +975,7 @@ initSlashCommand();
 if (typeof window !== "undefined") {
     window.addEventListener("beforeunload", () => {
         flushAutoSave({ showStatusMessage: false, force: true });
+        teardownAutomationHandlers();
     });
 }
 
