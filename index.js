@@ -16,7 +16,7 @@ import {
 } from "./src/simple-switcher.js";
 import { getOutfitSlashCommandConfig } from "./src/verbs.js";
 
-const extensionName = "SillyTavern-OutfitSwitch";
+const extensionName = "SillyTavern-OutfitSwitch-Testing";
 const logPrefix = "[OutfitSwitch]";
 
 let settings = ensureSettingsShape(extension_settings[extensionName] || defaultSettings);
@@ -991,7 +991,7 @@ async function populateBuildMeta() {
         return;
     }
 
-    const fallbackNote = "Outfit Switcher is an early preview extension. Expect rough edges, limited functionality, and breaking changes as the system evolves.";
+    const fallbackNote = "";
 
     try {
         const manifestUrl = new URL("./manifest.json", import.meta.url);
@@ -1015,12 +1015,7 @@ async function populateBuildMeta() {
             versionEl.removeAttribute("aria-label");
         }
 
-        const description = typeof manifest?.description === "string" ? manifest.description.trim() : "";
-        if (description) {
-            noteEl.textContent = description;
-        } else {
-            noteEl.textContent = fallbackNote;
-        }
+        noteEl.textContent = fallbackNote;
     } catch (error) {
         console.warn(`${logPrefix} Unable to populate build metadata`, error);
         versionEl.textContent = "Outfit Switcher";
