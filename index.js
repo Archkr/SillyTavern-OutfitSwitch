@@ -14,7 +14,7 @@ import {
     buildStreamBuffer,
 } from "./src/simple-switcher.js";
 
-const extensionName = "SillyTavern-OutfitSwitch-Testing";
+const extensionName = "SillyTavern-OutfitSwitch";
 const logPrefix = "[OutfitSwitch]";
 
 let settings = ensureSettingsShape(extension_settings[extensionName] || defaultSettings);
