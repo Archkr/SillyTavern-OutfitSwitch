@@ -21,9 +21,10 @@ Under the hood both extensions listen to streaming output, score the mentions th
 6. [Getting Started in Five Minutes](#getting-started-in-five-minutes)
 7. [Tour of the Settings UI](#tour-of-the-settings-ui)
     1. [Character Card](#character-card)
-    2. [Variant Gallery](#variant-gallery)
-    3. [Trigger Table](#trigger-table)
-    4. [Status & Tips](#status--tips)
+    2. [Profiles](#profiles)
+    3. [Variant Gallery](#variant-gallery)
+    4. [Trigger Table](#trigger-table)
+    5. [Status & Tips](#status--tips)
 8. [Understanding Automatic Switches](#understanding-automatic-switches)
 9. [Troubleshooting Checklist](#troubleshooting-checklist)
 10. [Support & Contributions](#support--contributions)
@@ -105,25 +106,28 @@ You can always click a variant’s **Run** button to override automation instant
 ### Character Card
 Set the reference name and default costume folder. The card includes quick actions to test the default outfit and confirm the extension is enabled.
 
+### Profiles
+Use the Active Profile picker to switch between saved setups. Export/Import targets the active profile, while Export All/Import All gives you a full backup or multi-profile restore in one file.
+
 ### Variant Gallery
 Add, rename, or remove outfit variants. Each entry shows the resolved folder path plus a one-click **Run** button for manual switches.
 
 ### Trigger Table
-Create trigger rows with three fields: friendly name, match text (keyword or regex), and the variant to activate. Buttons appear inline to test detection or delete the trigger.
+Create trigger rows with three fields: friendly name, match text (keyword or regex), and the variant to activate. Each row includes a literal match mode (contains vs. whole word), plus inline validation that highlights invalid regex patterns. Use the Up/Down controls to reorder rows when multiple triggers overlap.
 
 ### Status & Tips
-Inline banners surface validation errors, successful saves, or warnings when a folder path is missing. The footer links to quick-start tips drawn from the Costume Switcher documentation.
+Inline banners surface validation errors, successful saves, or warnings when a folder path is missing. Automated matches also report which trigger fired and which outfit was applied.
 
 ---
 
 ## Understanding Automatic Switches
 
-- **Keyword vs. regex** – Plain text triggers match case-insensitively, while regex triggers obey JavaScript syntax (wrap in `/pattern/` to enable flags like `i`).
-- **Buffer window** – Up to 2,000 of the most recent characters are scanned to balance responsiveness with context.
+- **Keyword vs. regex** – Plain text triggers match case-insensitively, while regex triggers obey JavaScript syntax (wrap in `/pattern/` to enable flags like `i`). The settings panel includes a toggle to force regex case-insensitivity if you want consistent `i` behavior.
+- **Buffer window** – The stream buffer length is configurable in the Triggers section. Larger values catch longer phrases but can delay matches; set it to 0 to disable trimming.
 - **Cooldowns** – Rapid repeat matches are ignored briefly so the same line does not spam costume calls.
 - **Reset events** – Clearing chat or regenerating a message resets the buffer, ensuring fresh context for the next response.
 
-If a trigger does not fire, open the browser console for detailed logs that show the processed buffer and which triggers were evaluated.
+If a trigger does not fire, confirm the row order, match mode, and any regex validation warnings in the trigger table. The browser console still logs the processed buffer and evaluation details for deeper debugging.
 
 ---
 
@@ -131,7 +135,7 @@ If a trigger does not fire, open the browser console for detailed logs that show
 
 1. **No switches occur:** Verify streaming output is enabled and the extension toggle is on.
 2. **Trigger never fires:** Confirm the match text appears exactly (or adjust the regex), and ensure the variant points to an existing folder.
-3. **Wrong outfit runs:** Check the trigger’s target in the table and confirm no duplicate trigger names exist.
+3. **Wrong outfit runs:** Check trigger priority order, match mode, and the target folder in the table to ensure the highest-priority row matches first.
 4. **Manual runs fail:** Make sure `/costume` works for the chosen folder outside the extension—missing directories prevent switches.
 
 ---
