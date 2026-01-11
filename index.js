@@ -12,6 +12,7 @@ import {
     normalizeTriggerEntry,
     normalizeVariantEntry,
     buildStreamBuffer,
+    parseTriggerPattern,
 } from "./src/simple-switcher.js";
 
 const extensionName = "SillyTavern-OutfitSwitch";
@@ -31,7 +32,7 @@ const automationState = {
     streamTrigger: null,
 };
 
-const STREAM_BUFFER_LIMIT = 2000;
+const DEFAULT_STREAM_BUFFER_LIMIT = 2000;
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 const AUTO_SAVE_NOTICE_COOLDOWN_MS = 1800;
@@ -42,6 +43,8 @@ const AUTO_SAVE_REASON_OVERRIDES = {
     triggers: "your triggers",
     profiles: "your profiles",
     activeProfile: "the active profile",
+    streamBufferLimit: "the stream buffer length",
+    forceRegexCaseInsensitive: "regex case matching",
 };
 
 const autoSaveState = {
@@ -62,7 +65,12 @@ const uiState = {
     profileExportButton: null,
     profileImportButton: null,
     profileImportInput: null,
+    profilesExportButton: null,
+    profilesImportButton: null,
+    profilesImportInput: null,
     baseFolderInput: null,
+    streamBufferInput: null,
+    regexCaseToggle: null,
 };
 
 function getProfiles() {
@@ -149,6 +157,12 @@ function syncProfileActionStates() {
     if (uiState.profileExportButton) {
         uiState.profileExportButton.disabled = profileCount === 0;
     }
+    if (uiState.profilesExportButton) {
+        uiState.profilesExportButton.disabled = profileCount === 0;
+    }
+    if (uiState.profilesImportButton) {
+        uiState.profilesImportButton.disabled = profileCount === 0;
+    }
 }
 
 function populateProfileSelect() {
@@ -187,10 +201,26 @@ function syncBaseFolderInput() {
     }
 }
 
+function syncTriggerSettingsInputs() {
+    if (uiState.streamBufferInput) {
+        const desiredValue = Number.isFinite(settings.streamBufferLimit)
+            ? String(settings.streamBufferLimit)
+            : String(DEFAULT_STREAM_BUFFER_LIMIT);
+        if (uiState.streamBufferInput.value !== desiredValue) {
+            uiState.streamBufferInput.value = desiredValue;
+        }
+    }
+
+    if (uiState.regexCaseToggle) {
+        uiState.regexCaseToggle.checked = resolveRegexCaseInsensitiveSetting();
+    }
+}
+
 function refreshProfileUI() {
     populateProfileSelect();
     updateProfilePill();
     syncBaseFolderInput();
+    syncTriggerSettingsInputs();
     renderVariants();
     renderTriggers();
 }
@@ -382,6 +412,50 @@ function handleExportProfile() {
     showStatus(`Exported <b>${escapeHtml(activeName)}</b> to a .json file.`, "success", 2200);
 }
 
+function handleExportAllProfiles() {
+    const profiles = getProfiles();
+    const profileNames = Object.keys(profiles);
+    if (!profileNames.length) {
+        showStatus("No profiles available to export.", "error");
+        return;
+    }
+
+    flushAutoSave({ showStatusMessage: false });
+
+    const payload = {
+        activeProfile: getActiveProfileName(),
+        profiles,
+        version: settings.version,
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const dataUrl = `data:text/json;charset=utf-8,${encodeURIComponent(json)}`;
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "outfit_profiles.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    showStatus("Exported all profiles to a .json file.", "success", 2200);
+}
+
+function normalizeProfilesPayload(rawProfiles) {
+    const normalized = {};
+    if (!rawProfiles || typeof rawProfiles !== "object") {
+        return normalized;
+    }
+
+    for (const [name, profile] of Object.entries(rawProfiles)) {
+        if (typeof name !== "string" || !name.trim()) {
+            continue;
+        }
+        normalized[name.trim()] = ensureProfileShape(profile);
+    }
+
+    return normalized;
+}
+
 async function handleProfileImport(event) {
     const input = event?.target;
     const file = input?.files?.[0];
@@ -407,6 +481,53 @@ async function handleProfileImport(event) {
     } finally {
         if (uiState.profileImportInput) {
             uiState.profileImportInput.value = "";
+        }
+    }
+}
+
+async function handleAllProfilesImport(event) {
+    const input = event?.target;
+    const file = input?.files?.[0];
+    if (!file) {
+        return;
+    }
+
+    try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const profilesPayload = normalizeProfilesPayload(parsed?.profiles || parsed?.data?.profiles);
+
+        if (!Object.keys(profilesPayload).length) {
+            throw new Error("Invalid profiles file");
+        }
+
+        const confirmed = confirm("Replace your existing profiles with the imported set?");
+        const profiles = getProfiles();
+
+        if (confirmed) {
+            settings.profiles = profilesPayload;
+            const importedActive = typeof parsed?.activeProfile === "string"
+                ? parsed.activeProfile.trim()
+                : "";
+            settings.activeProfile = profilesPayload[importedActive]
+                ? importedActive
+                : Object.keys(profilesPayload)[0] || DEFAULT_PROFILE_NAME;
+        } else {
+            Object.entries(profilesPayload).forEach(([name, profile]) => {
+                const uniqueName = ensureUniqueProfileName(name);
+                profiles[uniqueName] = ensureProfileShape(profile);
+            });
+        }
+
+        persistSettings("profiles");
+        refreshProfileUI();
+        showStatus("Imported profiles successfully.", "success", 2400);
+    } catch (error) {
+        console.error(`${logPrefix} Failed to import profiles`, error);
+        showStatus("Unable to import that profiles file.", "error", 3200);
+    } finally {
+        if (uiState.profilesImportInput) {
+            uiState.profilesImportInput.value = "";
         }
     }
 }
@@ -719,6 +840,23 @@ function resolveStreamTokenText(args) {
     return "";
 }
 
+function formatAutoSwitchStatus(match) {
+    const costume = match?.costume ? escapeHtml(match.costume) : "an outfit";
+    const trigger = match?.trigger ? `<code>${escapeHtml(match.trigger)}</code>` : "a trigger";
+    return `Auto-switched to <b>${costume}</b> via ${trigger}.`;
+}
+
+function resolveStreamBufferLimit() {
+    if (Number.isFinite(settings.streamBufferLimit)) {
+        return Math.max(Math.floor(settings.streamBufferLimit), 0);
+    }
+    return DEFAULT_STREAM_BUFFER_LIMIT;
+}
+
+function resolveRegexCaseInsensitiveSetting() {
+    return settings.forceRegexCaseInsensitive !== false;
+}
+
 function automationMessageHandler(...args) {
     if (!settings.enabled) {
         return;
@@ -729,8 +867,7 @@ function automationMessageHandler(...args) {
         return;
     }
 
-    const profile = getActiveProfile();
-    const match = findCostumeForText(profile, details.text);
+    const match = findCostumeForText(settings, details.text);
     if (!match || !match.costume) {
         return;
     }
@@ -755,7 +892,7 @@ function automationMessageHandler(...args) {
     automationState.lastAppliedCostume = match.costume;
 
     console.log(`${logPrefix} Auto-switching to "${match.costume}" (triggered by ${match.trigger}).`);
-    issueCostume(match.costume, { source: "automation" });
+    issueCostume(match.costume, { source: "automation", statusMessage: formatAutoSwitchStatus(match) });
 }
 
 function automationGenerationStartedHandler(...args) {
@@ -795,9 +932,11 @@ function automationStreamHandler(...args) {
         automationState.streamKey = reference || `stream-${Date.now()}`;
     }
 
-    automationState.streamBuffer = buildStreamBuffer(automationState.streamBuffer, tokenText, { limit: STREAM_BUFFER_LIMIT });
+    automationState.streamBuffer = buildStreamBuffer(automationState.streamBuffer, tokenText, {
+        limit: resolveStreamBufferLimit(),
+    });
 
-    const match = findCostumeForText(profile, automationState.streamBuffer);
+    const match = findCostumeForText(settings, automationState.streamBuffer);
     if (!match || !match.costume) {
         return;
     }
@@ -811,7 +950,7 @@ function automationStreamHandler(...args) {
     automationState.lastAppliedCostume = match.costume;
 
     console.log(`${logPrefix} Streaming auto-switching to "${match.costume}" (triggered by ${match.trigger}).`);
-    issueCostume(match.costume, { source: "automation" });
+    issueCostume(match.costume, { source: "automation", statusMessage: formatAutoSwitchStatus(match) });
 }
 
 function registerAutomationHandlers() {
@@ -1024,7 +1163,7 @@ async function populateBuildMeta() {
     }
 }
 
-async function issueCostume(folder, { source = "ui" } = {}) {
+async function issueCostume(folder, { source = "ui", statusMessage = "" } = {}) {
     const normalized = normalizeCostumeFolder(folder);
     if (!normalized) {
         const message = "Provide an outfit folder for the focus character.";
@@ -1034,7 +1173,7 @@ async function issueCostume(folder, { source = "ui" } = {}) {
 
     try {
         await executeSlashCommandsOnChatInput(`/costume \\${normalized}`);
-        const successMessage = `Updated the focus character's outfit to <b>${escapeHtml(normalized)}</b>.`;
+        const successMessage = statusMessage || `Updated the focus character's outfit to <b>${escapeHtml(normalized)}</b>.`;
         showStatus(successMessage, "success");
         return successMessage;
     } catch (err) {
@@ -1182,12 +1321,65 @@ function parseTriggerTextareaValue(value) {
     return results;
 }
 
+function collectInvalidRegexTriggers(triggers) {
+    if (!Array.isArray(triggers)) {
+        return [];
+    }
+
+    return triggers.filter((trigger) => {
+        if (typeof trigger !== "string") {
+            return false;
+        }
+        const trimmed = trigger.trim();
+        if (!trimmed.startsWith("/")) {
+            return false;
+        }
+        return !parseTriggerPattern(trimmed, { forceRegexCaseInsensitive: resolveRegexCaseInsensitiveSetting() });
+    });
+}
+
+function updateTriggerRowValidation(row, triggers) {
+    const errorEl = row.querySelector(".cs-trigger-error");
+    if (!errorEl) {
+        return;
+    }
+
+    const invalid = collectInvalidRegexTriggers(triggers);
+    if (invalid.length) {
+        row.classList.add("cs-trigger-row--error");
+        errorEl.textContent = `Invalid regex: ${invalid[0]}`;
+    } else {
+        row.classList.remove("cs-trigger-row--error");
+        errorEl.textContent = "";
+    }
+}
+
+function moveTriggerRow(index, direction) {
+    const profile = getActiveProfile();
+    if (!profile?.triggers?.length) {
+        return;
+    }
+
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= profile.triggers.length) {
+        return;
+    }
+
+    const [entry] = profile.triggers.splice(index, 1);
+    profile.triggers.splice(targetIndex, 0, entry);
+    scheduleAutoSave({ key: "triggers", noticeKey: "triggers" });
+    renderTriggers();
+}
+
 function bindTriggerInputs(row, index) {
     const triggerInput = row.querySelector(".cs-trigger-input");
     const folderInput = row.querySelector(".cs-folder-input");
+    const matchModeSelect = row.querySelector(".cs-trigger-match-mode");
     const runButton = row.querySelector(".cs-trigger-run");
     const deleteButton = row.querySelector(".cs-trigger-delete");
     const folderButton = row.querySelector(".cs-trigger-folder-select");
+    const moveUpButton = row.querySelector(".cs-trigger-move-up");
+    const moveDownButton = row.querySelector(".cs-trigger-move-down");
 
     const profile = getActiveProfile();
     const triggerList = Array.isArray(profile.triggers[index].triggers) && profile.triggers[index].triggers.length
@@ -1195,6 +1387,10 @@ function bindTriggerInputs(row, index) {
         : (profile.triggers[index].trigger ? [profile.triggers[index].trigger] : []);
     triggerInput.value = triggerList.join("\n");
     folderInput.value = profile.triggers[index].folder;
+    matchModeSelect.value = profile.triggers[index].matchMode || "contains";
+    updateTriggerRowValidation(row, triggerList);
+    moveUpButton.disabled = index === 0;
+    moveDownButton.disabled = index === profile.triggers.length - 1;
 
     triggerInput.addEventListener("input", (event) => {
         const activeProfile = getActiveProfile();
@@ -1202,11 +1398,18 @@ function bindTriggerInputs(row, index) {
         activeProfile.triggers[index].triggers = triggers;
         activeProfile.triggers[index].trigger = triggers[0] || "";
         scheduleAutoSave({ key: "triggers", element: event.target });
+        updateTriggerRowValidation(row, triggers);
     });
 
     folderInput.addEventListener("input", (event) => {
         const activeProfile = getActiveProfile();
         activeProfile.triggers[index].folder = event.target.value;
+        scheduleAutoSave({ key: "triggers", element: event.target });
+    });
+
+    matchModeSelect.addEventListener("change", (event) => {
+        const activeProfile = getActiveProfile();
+        activeProfile.triggers[index].matchMode = event.target.value;
         scheduleAutoSave({ key: "triggers", element: event.target });
     });
 
@@ -1228,6 +1431,14 @@ function bindTriggerInputs(row, index) {
         removeTriggerRow(index);
     });
 
+    moveUpButton.addEventListener("click", () => {
+        moveTriggerRow(index, -1);
+    });
+
+    moveDownButton.addEventListener("click", () => {
+        moveTriggerRow(index, 1);
+    });
+
     attachFolderPicker(folderButton, folderInput, { mode: "relative" });
 }
 
@@ -1245,6 +1456,16 @@ function renderTriggers() {
         row.innerHTML = `
             <td class="cs-trigger-column cs-trigger-column-triggers">
                 <textarea class="text_pole cs-trigger-input" rows="2" placeholder="winter\nformal\n/regex/"></textarea>
+                <div class="cs-trigger-meta">
+                    <label class="cs-trigger-option">
+                        <span>Literal match</span>
+                        <select class="text_pole cs-trigger-match-mode">
+                            <option value="contains">Contains</option>
+                            <option value="whole">Whole word</option>
+                        </select>
+                    </label>
+                    <small class="cs-trigger-error" aria-live="polite"></small>
+                </div>
                 <small class="cs-trigger-helper">Matches case-insensitive keywords, comma lists, or /regex/ entries—just like Costume Switcher.</small>
             </td>
             <td class="cs-trigger-column cs-trigger-column-folder">
@@ -1257,6 +1478,14 @@ function renderTriggers() {
                 </div>
             </td>
             <td class="cs-trigger-actions">
+                <button type="button" class="menu_button interactable cs-trigger-move-up" title="Move trigger up">
+                    <i class="fa-solid fa-arrow-up"></i>
+                    <span>Up</span>
+                </button>
+                <button type="button" class="menu_button interactable cs-trigger-move-down" title="Move trigger down">
+                    <i class="fa-solid fa-arrow-down"></i>
+                    <span>Down</span>
+                </button>
                 <button type="button" class="menu_button interactable cs-trigger-run">Run</button>
                 <button type="button" class="menu_button interactable cs-trigger-delete">Remove</button>
             </td>
@@ -1393,6 +1622,11 @@ function bindUI() {
     uiState.profileExportButton = getElement("#os-profile-export");
     uiState.profileImportButton = getElement("#os-profile-import");
     uiState.profileImportInput = getElement("#os-profile-import-file");
+    uiState.profilesExportButton = getElement("#os-profiles-export");
+    uiState.profilesImportButton = getElement("#os-profiles-import");
+    uiState.profilesImportInput = getElement("#os-profiles-import-file");
+    uiState.streamBufferInput = getElement("#os-stream-buffer-limit");
+    uiState.regexCaseToggle = getElement("#os-regex-case-insensitive");
 
     if (enableCheckbox) {
         enableCheckbox.checked = settings.enabled;
@@ -1460,6 +1694,36 @@ function bindUI() {
 
     if (uiState.profileImportInput) {
         uiState.profileImportInput.addEventListener("change", handleProfileImport);
+    }
+
+    if (uiState.profilesExportButton) {
+        uiState.profilesExportButton.addEventListener("click", handleExportAllProfiles);
+    }
+
+    if (uiState.profilesImportButton && uiState.profilesImportInput) {
+        uiState.profilesImportButton.addEventListener("click", () => uiState.profilesImportInput.click());
+    }
+
+    if (uiState.profilesImportInput) {
+        uiState.profilesImportInput.addEventListener("change", handleAllProfilesImport);
+    }
+
+    if (uiState.streamBufferInput) {
+        uiState.streamBufferInput.value = String(resolveStreamBufferLimit());
+        uiState.streamBufferInput.addEventListener("input", (event) => {
+            const rawValue = Number(event.target.value);
+            settings.streamBufferLimit = Number.isFinite(rawValue) ? Math.max(Math.floor(rawValue), 0) : DEFAULT_STREAM_BUFFER_LIMIT;
+            scheduleAutoSave({ key: "streamBufferLimit", element: event.target });
+        });
+    }
+
+    if (uiState.regexCaseToggle) {
+        uiState.regexCaseToggle.checked = resolveRegexCaseInsensitiveSetting();
+        uiState.regexCaseToggle.addEventListener("change", (event) => {
+            settings.forceRegexCaseInsensitive = Boolean(event.target.checked);
+            scheduleAutoSave({ key: "forceRegexCaseInsensitive", element: event.target });
+            renderTriggers();
+        });
     }
 
     refreshProfileUI();
