@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const DEFAULT_PROFILE_NAME = "Default";
 
@@ -55,6 +55,8 @@ export function normalizeTriggerEntry(entry = {}) {
         ? normalizedEntry.folder.trim()
         : (typeof normalizedEntry.costume === "string" ? normalizedEntry.costume.trim() : "");
 
+    const matchMode = normalizeTriggerMatchMode(normalizedEntry.matchMode);
+
     const triggers = gatherTriggerStrings([
         normalizedEntry.triggers,
         normalizedEntry.trigger,
@@ -80,7 +82,12 @@ export function normalizeTriggerEntry(entry = {}) {
 
     const primaryTrigger = trimmedPrimary || (triggers.length ? triggers[0] : "");
 
-    return { trigger: primaryTrigger, triggers, folder };
+    return {
+        trigger: primaryTrigger,
+        triggers,
+        folder,
+        matchMode,
+    };
 }
 
 export function ensureProfileShape(rawProfile = {}) {
@@ -128,6 +135,12 @@ function coerceLegacyProfile(raw = {}) {
 export function ensureSettingsShape(raw = {}) {
     const enabled = Boolean(raw?.enabled);
     const version = Number.isInteger(raw?.version) && raw.version > 0 ? raw.version : SCHEMA_VERSION;
+    const streamBufferLimit = Number.isFinite(raw?.streamBufferLimit)
+        ? Math.max(Math.floor(raw.streamBufferLimit), 0)
+        : 2000;
+    const forceRegexCaseInsensitive = raw?.forceRegexCaseInsensitive === undefined
+        ? true
+        : Boolean(raw.forceRegexCaseInsensitive);
 
     let profiles = normalizeProfilesMap(raw?.profiles);
 
@@ -146,7 +159,21 @@ export function ensureSettingsShape(raw = {}) {
         enabled,
         profiles,
         activeProfile,
+        streamBufferLimit,
+        forceRegexCaseInsensitive,
     };
+}
+
+function normalizeTriggerMatchMode(value) {
+    if (typeof value !== "string") {
+        return "contains";
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (["whole", "whole-word", "wholeword", "word"].includes(normalized)) {
+        return "whole";
+    }
+    return "contains";
 }
 
 export const defaultSettings = ensureSettingsShape();
