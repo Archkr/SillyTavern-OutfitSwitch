@@ -30,7 +30,11 @@ function uniqueFlags(flags) {
     return list.join("");
 }
 
-export function parseTriggerPattern(raw) {
+function escapeRegex(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function parseTriggerPattern(raw, { forceRegexCaseInsensitive = true } = {}) {
     if (typeof raw !== "string") {
         return null;
     }
@@ -43,9 +47,11 @@ export function parseTriggerPattern(raw) {
     const regexMatch = trimmed.match(/^\/((?:\\.|[^/])+?)\/([gimsuy]*)$/);
     if (regexMatch) {
         const [, source, flagGroup] = regexMatch;
-        const mergedFlags = uniqueFlags(`${flagGroup || ""}i`);
+        const mergedFlags = forceRegexCaseInsensitive
+            ? uniqueFlags(`${flagGroup || ""}i`)
+            : uniqueFlags(flagGroup || "");
         try {
-            const regex = new RegExp(source, mergedFlags || "i");
+            const regex = new RegExp(source, mergedFlags || (forceRegexCaseInsensitive ? "i" : ""));
             return { type: "regex", raw: trimmed, regex };
         } catch (error) {
             console.warn("[OutfitSwitch] Invalid trigger regex", trimmed, error);
@@ -60,14 +66,14 @@ export function parseTriggerPattern(raw) {
     return { type: "literal", raw: trimmed, value: trimmed.toLowerCase() };
 }
 
-function collectTriggerPatterns(entry) {
+function collectTriggerPatterns(entry, { forceRegexCaseInsensitive = true } = {}) {
     const triggers = Array.isArray(entry?.triggers) && entry.triggers.length
         ? entry.triggers
         : (entry?.trigger ? [entry.trigger] : []);
 
     const patterns = [];
     triggers.forEach((trigger) => {
-        const pattern = parseTriggerPattern(trigger);
+        const pattern = parseTriggerPattern(trigger, { forceRegexCaseInsensitive });
         if (pattern) {
             patterns.push(pattern);
         }
@@ -88,9 +94,12 @@ export function findCostumeForText(settingsOrProfile, text) {
     }
 
     const lower = normalizedText.toLowerCase();
+    const forceRegexCaseInsensitive = settingsOrProfile?.forceRegexCaseInsensitive === undefined
+        ? true
+        : Boolean(settingsOrProfile.forceRegexCaseInsensitive);
 
     for (const entry of profile.triggers || []) {
-        const patterns = collectTriggerPatterns(entry);
+        const patterns = collectTriggerPatterns(entry, { forceRegexCaseInsensitive });
         if (!patterns.length) {
             continue;
         }
@@ -100,9 +109,14 @@ export function findCostumeForText(settingsOrProfile, text) {
             continue;
         }
 
+        const matchMode = entry?.matchMode === "whole" ? "whole" : "contains";
         for (const pattern of patterns) {
             if (pattern.type === "literal") {
-                if (lower.includes(pattern.value)) {
+                if (
+                    matchMode === "whole"
+                        ? new RegExp(`\\b${escapeRegex(pattern.raw)}\\b`, "i").test(normalizedText)
+                        : lower.includes(pattern.value)
+                ) {
                     return { costume, trigger: pattern.raw, type: "literal" };
                 }
             } else if (pattern.type === "regex") {

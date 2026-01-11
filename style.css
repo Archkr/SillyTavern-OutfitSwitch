@@ -628,6 +628,61 @@
     line-height: 1.4;
 }
 
+#outfit-switcher-settings.cs-theme .cs-trigger-settings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+#outfit-switcher-settings.cs-theme .cs-trigger-settings .cs-field {
+    flex: 1 1 240px;
+    min-width: 220px;
+}
+
+#outfit-switcher-settings.cs-theme .cs-toggle-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#outfit-switcher-settings.cs-theme .cs-toggle-inline input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+#outfit-switcher-settings.cs-theme .cs-trigger-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+#outfit-switcher-settings.cs-theme .cs-trigger-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+#outfit-switcher-settings.cs-theme .cs-trigger-error {
+    min-height: 1em;
+    font-size: 0.78rem;
+    color: color-mix(in srgb, var(--danger) 85%, #ffffff 15%);
+}
+
+#outfit-switcher-settings.cs-theme .cs-trigger-row--error .cs-trigger-input {
+    border-color: color-mix(in srgb, var(--danger) 65%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
 #outfit-switcher-settings.cs-theme .cs-trigger-column-folder .cs-folder-picker {
     align-items: stretch;
 }

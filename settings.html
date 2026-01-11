@@ -55,6 +55,14 @@
                                         <i class="fa-solid fa-file-arrow-up"></i>
                                         <span>Import</span>
                                     </button>
+                                    <button id="os-profiles-export" class="menu_button interactable cs-button-ghost" type="button" title="Export all profiles to a JSON file">
+                                        <i class="fa-solid fa-box-archive"></i>
+                                        <span>Export All</span>
+                                    </button>
+                                    <button id="os-profiles-import" class="menu_button interactable cs-button-ghost" type="button" title="Import multiple profiles from a JSON file">
+                                        <i class="fa-solid fa-file-import"></i>
+                                        <span>Import All</span>
+                                    </button>
                                 </div>
                             </label>
                             <div class="cs-profile-actions">
@@ -76,8 +84,9 @@
                                 </button>
                             </div>
                             <input id="os-profile-import-file" type="file" accept=".json" hidden />
+                            <input id="os-profiles-import-file" type="file" accept=".json" hidden />
                         </div>
-                        <p class="cs-helper-text">Profiles capture the base folder, variants, and triggers so you can hop between arcs or timelines without rebuilding your shortcuts.</p>
+                        <p class="cs-helper-text">Profiles capture the base folder, variants, and triggers so you can hop between arcs or timelines without rebuilding your shortcuts. Use Export All/Import All for full backup restores.</p>
                     </div>
                 </section>
 
@@ -168,6 +177,20 @@
                             </header>
                             <div class="cs-card-body">
                                 <p class="cs-helper-text">Press <strong>Run</strong> to apply the linked outfit immediately. The same triggers fire automatically whenever matching text appears in chat, even while a reply is still streaming. Each entry accepts multiple keywords separated by commas or new lines.</p>
+                                <div class="cs-trigger-settings">
+                                    <label class="cs-field">
+                                        <span>Stream buffer length</span>
+                                        <input id="os-stream-buffer-limit" class="text_pole" type="number" min="0" step="100" placeholder="2000" />
+                                        <small class="cs-helper-text">Higher values catch longer phrases but can delay matching. Set to 0 to disable trimming.</small>
+                                    </label>
+                                    <label class="cs-field cs-trigger-toggle">
+                                        <span>Force regex case-insensitive</span>
+                                        <div class="cs-toggle-inline">
+                                            <input id="os-regex-case-insensitive" type="checkbox" />
+                                            <span>Always append the <code>i</code> flag to <code>/regex/</code> triggers.</span>
+                                        </div>
+                                    </label>
+                                </div>
                                 <div class="cs-table-scroll">
                                     <table class="cs-table cs-trigger-table">
                                         <thead>
@@ -180,7 +203,7 @@
                                         <tbody id="os-trigger-table-body"></tbody>
                                     </table>
                                 </div>
-                                <p class="cs-helper-text">Examples: <code>winter</code>, <code>combat</code>, or even <code>/regex/</code> patterns.</p>
+                                <p class="cs-helper-text">Examples: <code>winter</code>, <code>combat</code>, or even <code>/regex/</code> patterns. Use the literal match mode to avoid partial-word hits. Trigger priority follows row order—use Up/Down to reorder.</p>
                             </div>
                         </section>
                     </div>
