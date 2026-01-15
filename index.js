@@ -1186,7 +1186,7 @@ async function issueCostume(folder, { source = "ui", statusMessage = "" } = {}) 
     }
 
     try {
-        await executeSlashCommandsOnChatInput(`/costume \\${normalized}`);
+        await executeSlashCommandsOnChatInput(`/costume ${normalized}`);
         const successMessage = statusMessage || `Updated the focus character's outfit to <b>${escapeHtml(normalized)}</b>.`;
         showStatus(successMessage, "success");
         return successMessage;
@@ -1676,6 +1676,9 @@ function bindUI() {
                 showStatus("Set a base folder before running it.", "error");
                 return;
             }
+
+            // Explicitly run the command for the base folder to match user expectation: /costume [BaseFolder]
+            // This avoids potential confusion with sub-path logic.
             await issueCostume(profile.baseFolder, { source: "ui" });
         });
     }
