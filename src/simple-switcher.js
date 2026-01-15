@@ -88,9 +88,38 @@ export function findCostumeForText(settingsOrProfile, text) {
         return null;
     }
 
-    const normalizedText = text;
+    let normalizedText = text;
+
+    // 1. Global Ignore Patterns
+    const globalPatterns = typeof settingsOrProfile?.globalIgnorePatterns === 'string'
+        ? settingsOrProfile.globalIgnorePatterns.split(/\r?\n/).filter(Boolean)
+        : ['<think>[\\s\\S]*?<\\/think>']; // Default fallback if undefined, though usually set
+
+    for (const pattern of globalPatterns) {
+        try {
+            // Check if pattern looks like a regex /.../flags
+            const regexParts = pattern.match(/^\/((?:\\.|[^/])+?)\/([gimsuy]*)$/);
+            if (regexParts) {
+                normalizedText = normalizedText.replace(new RegExp(regexParts[1], regexParts[2] || 'gi'), '');
+            } else {
+                // Treat as simple regex string, allow 'gi' by default
+                normalizedText = normalizedText.replace(new RegExp(pattern, 'gi'), '');
+            }
+        } catch (e) {
+            console.warn('[OutfitSwitch] Invalid global ignore pattern:', pattern, e);
+        }
+    }
+
     if (!normalizedText.trim()) {
         return null;
+    }
+
+    // 2. Ignore Dialogue (Quote Masking)
+    if (settingsOrProfile?.ignoreDialogue) {
+        // Simple quote matching: "..." or “...” or ‘...’
+        // We replace content with space to preserve word boundaries but remove keywords
+        const quoteRegex = /"[\s\S]*?"|“[\s\S]*?”|'[\s\S]*?'/g;
+        normalizedText = normalizedText.replace(quoteRegex, (match) => ' '.repeat(match.length));
     }
 
     const lower = normalizedText.toLowerCase();
@@ -109,20 +138,20 @@ export function findCostumeForText(settingsOrProfile, text) {
             continue;
         }
 
-        const matchMode = entry?.matchMode === "whole" ? "whole" : "contains";
+        const matchMode = entry?.matchMode === 'whole' ? 'whole' : 'contains';
         for (const pattern of patterns) {
-            if (pattern.type === "literal") {
+            if (pattern.type === 'literal') {
                 if (
-                    matchMode === "whole"
-                        ? new RegExp(`\\b${escapeRegex(pattern.raw)}\\b`, "i").test(normalizedText)
+                    matchMode === 'whole'
+                        ? new RegExp(`\\b${escapeRegex(pattern.raw)}\\b`, 'i').test(normalizedText)
                         : lower.includes(pattern.value)
                 ) {
-                    return { costume, trigger: pattern.raw, type: "literal" };
+                    return { costume, trigger: pattern.raw, type: 'literal' };
                 }
-            } else if (pattern.type === "regex") {
+            } else if (pattern.type === 'regex') {
                 pattern.regex.lastIndex = 0;
                 if (pattern.regex.test(normalizedText)) {
-                    return { costume, trigger: pattern.raw, type: "regex" };
+                    return { costume, trigger: pattern.raw, type: 'regex' };
                 }
             }
         }
@@ -130,6 +159,7 @@ export function findCostumeForText(settingsOrProfile, text) {
 
     return null;
 }
+
 
 export {
     DEFAULT_PROFILE_NAME,

@@ -124,10 +124,10 @@ function coerceLegacyProfile(raw = {}) {
     const detectedProfile = raw?.profile && typeof raw.profile === "object"
         ? raw.profile
         : {
-              baseFolder: raw?.baseFolder,
-              variants: raw?.variants,
-              triggers: raw?.triggers,
-          };
+            baseFolder: raw?.baseFolder,
+            variants: raw?.variants,
+            triggers: raw?.triggers,
+        };
 
     return ensureProfileShape(detectedProfile);
 }
@@ -141,6 +141,11 @@ export function ensureSettingsShape(raw = {}) {
     const forceRegexCaseInsensitive = raw?.forceRegexCaseInsensitive === undefined
         ? true
         : Boolean(raw.forceRegexCaseInsensitive);
+
+    const ignoreDialogue = Boolean(raw?.ignoreDialogue);
+    const globalIgnorePatterns = typeof raw?.globalIgnorePatterns === "string"
+        ? raw.globalIgnorePatterns
+        : "/<think>[\\s\\S]*?<\\/think>/gi";
 
     let profiles = normalizeProfilesMap(raw?.profiles);
 
@@ -161,6 +166,8 @@ export function ensureSettingsShape(raw = {}) {
         activeProfile,
         streamBufferLimit,
         forceRegexCaseInsensitive,
+        ignoreDialogue,
+        globalIgnorePatterns,
     };
 }
 

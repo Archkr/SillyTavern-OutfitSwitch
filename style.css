@@ -45,11 +45,9 @@
 }
 
 #outfit-switcher-settings.cs-theme .cs-card {
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface) 88%, rgba(255, 255, 255, 0.12)),
-        color-mix(in srgb, var(--surface-soft) 78%, rgba(0, 0, 0, 0.42))
-    );
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--surface) 88%, rgba(255, 255, 255, 0.12)),
+            color-mix(in srgb, var(--surface-soft) 78%, rgba(0, 0, 0, 0.42)));
     border-radius: var(--card-radius);
     border: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: var(--card-shadow-soft);
@@ -123,7 +121,7 @@
     }
 }
 
-#outfit-switcher-settings.cs-theme .cs-card > * {
+#outfit-switcher-settings.cs-theme .cs-card>* {
     position: relative;
     z-index: 3;
 }
@@ -179,11 +177,9 @@
 
 #outfit-switcher-settings.cs-theme .cs-header-card {
     gap: 20px;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--accent) 38%, rgba(20, 20, 35, 0.55)),
-        color-mix(in srgb, var(--accent-secondary) 26%, rgba(0, 0, 0, 0.45))
-    );
+    background: linear-gradient(135deg,
+            color-mix(in srgb, var(--accent) 38%, rgba(20, 20, 35, 0.55)),
+            color-mix(in srgb, var(--accent-secondary) 26%, rgba(0, 0, 0, 0.45)));
     color: var(--header-text);
 }
 
@@ -324,12 +320,12 @@
     transition: transform 160ms ease;
 }
 
-#outfit-switcher-settings.cs-theme .cs-master-toggle input:checked + .cs-switch-thumb {
+#outfit-switcher-settings.cs-theme .cs-master-toggle input:checked+.cs-switch-thumb {
     background: var(--accent);
     box-shadow: 0 0 0 6px var(--accent-soft);
 }
 
-#outfit-switcher-settings.cs-theme .cs-master-toggle input:checked + .cs-switch-thumb::after {
+#outfit-switcher-settings.cs-theme .cs-master-toggle input:checked+.cs-switch-thumb::after {
     transform: translateX(22px);
 }
 
@@ -755,4 +751,69 @@
     padding: 2px 6px;
     border-radius: 6px;
     font-size: 0.85rem;
+}
+
+/* Collapsible Settings */
+#outfit-switcher-settings.cs-theme .cs-trigger-settings-container {
+    margin-bottom: 20px;
+}
+
+#outfit-switcher-settings.cs-theme .cs-details {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#outfit-switcher-settings.cs-theme .cs-summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--header-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 140ms ease;
+    list-style: none;
+}
+
+#outfit-switcher-settings.cs-theme .cs-summary::-webkit-details-marker {
+    display: none;
+}
+
+#outfit-switcher-settings.cs-theme .cs-summary:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#outfit-switcher-settings.cs-theme .cs-summary i {
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+#outfit-switcher-settings.cs-theme details[open] .cs-summary i {
+    transform: rotate(45deg);
+    color: var(--accent);
+}
+
+#outfit-switcher-settings.cs-theme details[open] .cs-trigger-settings {
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    animation: cs-slide-down 0.2s ease-out;
+}
+
+@keyframes cs-slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#outfit-switcher-settings.cs-theme .cs-field--full {
+    flex: 1 1 100%;
 }

@@ -45,6 +45,8 @@ const AUTO_SAVE_REASON_OVERRIDES = {
     activeProfile: "the active profile",
     streamBufferLimit: "the stream buffer length",
     forceRegexCaseInsensitive: "regex case matching",
+    ignoreDialogue: "ignoring dialogue",
+    globalIgnorePatterns: "global ignore patterns",
 };
 
 const autoSaveState = {
@@ -71,6 +73,8 @@ const uiState = {
     baseFolderInput: null,
     streamBufferInput: null,
     regexCaseToggle: null,
+    ignoreDialogueToggle: null,
+    globalIgnorePatternsInput: null,
 };
 
 function getProfiles() {
@@ -213,6 +217,16 @@ function syncTriggerSettingsInputs() {
 
     if (uiState.regexCaseToggle) {
         uiState.regexCaseToggle.checked = resolveRegexCaseInsensitiveSetting();
+    }
+
+    if (uiState.ignoreDialogueToggle) {
+        uiState.ignoreDialogueToggle.checked = Boolean(settings.ignoreDialogue);
+    }
+
+    if (uiState.globalIgnorePatternsInput) {
+        uiState.globalIgnorePatternsInput.value = typeof settings.globalIgnorePatterns === "string"
+            ? settings.globalIgnorePatterns
+            : "";
     }
 }
 
@@ -702,15 +716,15 @@ function resolveMessageCandidate(value, visited) {
     const textCandidate = typeof value.mes === "string"
         ? value.mes
         : (typeof value.text === "string"
-              ? value.text
-              : (typeof value.message === "string" ? value.message : null));
+            ? value.text
+            : (typeof value.message === "string" ? value.message : null));
 
     const isUser = Boolean(value.is_user ?? value.isUser ?? (typeof value.role === "string" && value.role.toLowerCase() === "user"));
     const key = typeof value.key === "string"
         ? value.key
         : (typeof value.bufKey === "string"
-              ? value.bufKey
-              : (typeof value.messageKey === "string" ? value.messageKey : null));
+            ? value.bufKey
+            : (typeof value.messageKey === "string" ? value.messageKey : null));
     const idCandidate = [value.id, value.mesId, value.messageId].find((candidate) => Number.isFinite(candidate));
     const id = idCandidate != null ? Number(idCandidate) : null;
 
@@ -1048,9 +1062,9 @@ function waitForElement(selector, { timeout = 10000 } = {}) {
 
         const timeoutId = Number.isFinite(timeout) && timeout > 0
             ? setTimeout(() => {
-                  observer.disconnect();
-                  reject(new Error(`Timed out waiting for selector: ${selector}`));
-              }, timeout)
+                observer.disconnect();
+                reject(new Error(`Timed out waiting for selector: ${selector}`));
+            }, timeout)
             : null;
 
         observer.observe(root, { childList: true, subtree: true });
@@ -1627,6 +1641,8 @@ function bindUI() {
     uiState.profilesImportInput = getElement("#os-profiles-import-file");
     uiState.streamBufferInput = getElement("#os-stream-buffer-limit");
     uiState.regexCaseToggle = getElement("#os-regex-case-insensitive");
+    uiState.ignoreDialogueToggle = getElement("#os-ignore-dialogue");
+    uiState.globalIgnorePatternsInput = getElement("#os-global-ignore-patterns");
 
     if (enableCheckbox) {
         enableCheckbox.checked = settings.enabled;
@@ -1721,8 +1737,22 @@ function bindUI() {
         uiState.regexCaseToggle.checked = resolveRegexCaseInsensitiveSetting();
         uiState.regexCaseToggle.addEventListener("change", (event) => {
             settings.forceRegexCaseInsensitive = Boolean(event.target.checked);
-            scheduleAutoSave({ key: "forceRegexCaseInsensitive", element: event.target });
+            scheduleAutoSave({ key: "forceRegexCaseInsensitive", element: event.target, announce: false });
             renderTriggers();
+        });
+    }
+
+    if (uiState.ignoreDialogueToggle) {
+        uiState.ignoreDialogueToggle.addEventListener('change', (event) => {
+            settings.ignoreDialogue = Boolean(event.target.checked);
+            scheduleAutoSave({ key: 'ignoreDialogue', element: event.target, announce: false });
+        });
+    }
+
+    if (uiState.globalIgnorePatternsInput) {
+        uiState.globalIgnorePatternsInput.addEventListener('input', (event) => {
+            settings.globalIgnorePatterns = event.target.value;
+            scheduleAutoSave({ key: 'globalIgnorePatterns', element: event.target });
         });
     }
 
